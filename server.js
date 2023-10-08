@@ -1,8 +1,12 @@
 const app = require("express")();
 const httpServer = require("http").createServer(app);
+const os = require("os");
+
+// Get the network interfaces
+const networkInterfaces = os.networkInterfaces();
 
 const io = require("socket.io")(httpServer, { cors: true });
-
+const port = 3300;
 let rooms = {};
 
 io.on("connection", (socket) => {
@@ -15,11 +19,17 @@ io.on("connection", (socket) => {
     // console.log("Received message:", info);
     console.log("Edge created a room");
     currentDeviceId = info.deviceId;
+    console.log("Edge device id ", currentDeviceId);
     if (!rooms[info.deviceId]) {
       // Room does not exist for current device. So create it
       rooms[info.deviceId] = { cams: info.cams, socketId: socket.id };
       currentDeviceId = info.deviceId;
     }
+
+    console.log("emiting room created event now");
+    io.to(rooms[info.deviceId].socketId).emit("roomCreated", {
+      roomId: info.deviceId,
+    });
 
     // console.log("New Rooms", rooms);
   });
@@ -49,7 +59,9 @@ io.on("connection", (socket) => {
 
   socket.on("camRequest", (info) => {
     console.log("Server Received Cam Request:", info);
-    io.to(rooms[info.deviceId].socketId).emit("camRequest", { camId: info.camId });
+    io.to(rooms[info.deviceId].socketId).emit("camRequest", {
+      camId: info.camId,
+    });
     // socket.broadcast.emit("camRequest", info); // Broadcast the message to all connected clients except self
   });
 
@@ -58,8 +70,21 @@ io.on("connection", (socket) => {
     console.log(rooms[data.deviceId].userSocketId);
     io.to(rooms[data.deviceId].userSocketId).emit("camData", data);
   });
+
+  socket.on("offer", (data) => {
+    console.log("Recieved an offer from the edge device");
+    console.log(JSON.stringify(data.offer, null, 2));
+  });
 });
 
-httpServer.listen(5000, () => {
-  console.log("Server is running on port 5000");
+httpServer.listen(port, () => {
+  // Loop through the network interfaces to find the IP address
+  Object.keys(networkInterfaces).forEach((interfaceName) => {
+    const interfaceData = networkInterfaces[interfaceName];
+    for (const network of interfaceData) {
+      if (network.family === "IPv4" && !network.internal) {
+        console.log(`Server IP address: http://${network.address}:${port}`);
+      }
+    }
+  });
 });
