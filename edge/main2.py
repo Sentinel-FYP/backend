@@ -29,7 +29,7 @@ def camRequest(data):
 def on_message(data):
     print('Price Data ', data)
 
-sio.connect('http://localhost:5000')
+sio.connect('http://localhost:3300')
 
 # Run indefinitely
 while True:
