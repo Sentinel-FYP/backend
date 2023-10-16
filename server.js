@@ -55,9 +55,13 @@ io.on("connection", (socket) => {
     io.to(rooms[data.deviceId].userSocketId).emit("answer", data);
   });
 
-  socket.on("userIceCandidate", (data) => {
-    console.log("Server Received user candidate:", data);
-    io.to(rooms[data.deviceId].userSocketId).emit("userIceCandidate", data);
+  socket.on("iceCandidate", (data) => {
+    console.log("Server Received candidate:", data);
+    if (data.user) {
+      io.to(rooms[data.deviceId].deviceSocketId).emit("iceCandidate", data);
+    } else {
+      io.to(rooms[data.deviceId].user).emit("iceCandidate", data);
+    }
   });
 
   socket.on("disconnect", () => {

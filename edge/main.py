@@ -19,24 +19,23 @@ camData = {"1": "Cam 1", "2": "Cam 2", "3": "Cam 3"}
 cams = ["1", "2", "3"]
 
 peer_connection = RTCPeerConnection()
-# channel = peer_connection.createDataChannel("chat")
+channel = peer_connection.createDataChannel("stream")
+
+# async def send_pings(channel):
+#     num = 0
+#     while True:
+#         msg = "From Offerer: {}".format(num)
+#         print("Sending via RTC Datachannel: ", msg)
+#         channel.send(msg)
+#         num += 1
+#         await asyncio.sleep(1)
 
 
-async def send_pings(channel):
-    num = 0
-    while True:
-        msg = "From Offerer: {}".format(num)
-        print("Sending via RTC Datachannel: ", msg)
-        channel.send(msg)
-        num += 1
-        await asyncio.sleep(1)
-
-
-# @channel.on("open")
-# def on_open():
-#     print("channel openned")
-#     channel.send("Hello from Offerer via Datachannel")
-#     asyncio.ensure_future(send_pings(channel))
+@channel.on("open")
+def on_open():
+    print("channel openned")
+    channel.send("Hello from Offerer via Datachannel")
+    # asyncio.ensure_future(send_pings(channel))
 
 
 # @channel.on("message")
@@ -53,6 +52,11 @@ async def generateLocalOffer():
 
 def handleCandidate(e):
     print("Device Ice", e)
+    if (e.candidate):
+        sio.emit("iceCandidate", {'deviceId': deviceId,'candidate': e['candidate']})
+
+async def handleAddIceCandidate(candidate):
+    await peer_connection.addIceCandidate(candidate)
 
 async def setRemoteOffer(offer):
     try:
@@ -62,7 +66,7 @@ async def setRemoteOffer(offer):
         await peer_connection.setRemoteDescription(desc)
 
         print("State", peer_connection.signalingState)
-        # peer_connection.onicecandidate = handleCandidate
+        peer_connection.onicecandidate = handleCandidate
 
         answer = await peer_connection.createAnswer()
         await peer_connection.setLocalDescription(answer)
@@ -104,10 +108,11 @@ def userJoined(data):
     sio.emit('answer', message)
 
 @sio.event
-async def userIceCandidate(data):
+def iceCandidate(data):
     print("User Candidate", data)
-    candidate = RTCIceCandidate(data.candidate)
-    await peer_connection.addIceCandidate(candidate)
+
+    candidate = RTCIceCandidate(data['candidate']['foundation'], data['candidate']['ip'], data['candidate']['port'], data['candidate']['priority'], data['candidate']['protocol'], data['candidate']['type'])
+    asyncio.run(handleAddIceCandidate(candidate))
 
 @sio.event
 async def connect_error():
