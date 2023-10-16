@@ -30,6 +30,12 @@ function App() {
       console.log("State", localPeer.current.signalingState);
     });
 
+    localSocket.on("ice-candidate", async (data) => {
+      console.log("Edge Candidate", data);
+      const candidate = new RTCIceCandidate(data.candidate);
+      await localPeer.current.addIceCandidate(candidate);
+    });
+
     return () => {
       localSocket.disconnect();
     };
@@ -43,7 +49,13 @@ function App() {
 
   const joinRoom = async () => {
     if (socket) {
-      const peer = new RTCPeerConnection();
+      const peer = new RTCPeerConnection({
+        iceServers: [
+          {
+            urls: "stun:stun.stunprotocol.org",
+          },
+        ],
+      });
 
       // peer.onicecandidate = (e) => {
       //   console.log("This");
@@ -67,12 +79,36 @@ function App() {
       console.log("State", peer.signalingState);
 
       // peer.addEventListener("message", (m) => setMessages(m));
+      peer.onicecandidate = handleIceCandidate;
 
       localPeer.current = peer;
 
       socket.emit("join room", { deviceId: myDevice, offer: offer }); // Send a message to the server
     }
   };
+
+  function handleIceCandidate(e) {
+    if (e.candidate) {
+      console.log("Candidate", e.candidate);
+
+      let candidateToSend = {
+        foundation: e.candidate.foundation,
+        ip: e.candidate.address,
+        port: e.candidate.port,
+        priority: e.candidate.priority,
+        protocol: e.candidate.protocol,
+        type: e.candidate.type,
+      };
+
+      const payload = {
+        deviceId: myDevice,
+        candidate: candidateToSend,
+        user: true,
+      };
+      console.log("User ice payload", payload);
+      socket.emit("iceCandidate", payload);
+    }
+  }
 
   return (
     <div className="App">
