@@ -8,17 +8,28 @@ from aiortc import (
     RTCSessionDescription,
     RTCConfiguration,
     RTCIceServer,
+    RTCIceGatherer
 )
 
 server_address = "http://localhost:3300"
 # standard Python
-sio = socketio.Client()
+sio = socketio.AsyncClient()
 
 deviceId = "abc"
 camData = {"1": "Cam 1", "2": "Cam 2", "3": "Cam 3"}
 cams = ["1", "2", "3"]
 
-peer_connection = RTCPeerConnection()
+ice_servers = [
+    RTCIceServer(urls=["stun:stun.relay.metered.ca:80"]), 
+    RTCIceServer(urls=["turn:a.relay.metered.ca:80"], username="600d051df7164e74cc88545e", credential="cHXM9rvKAmi8boVQ"),
+    RTCIceServer(urls=["turn:a.relay.metered.ca:80?transport=tcp"], username="600d051df7164e74cc88545e", credential="cHXM9rvKAmi8boVQ"),
+    RTCIceServer(urls=["turn:a.relay.metered.ca:443"], username="600d051df7164e74cc88545e", credential="cHXM9rvKAmi8boVQ"),
+    RTCIceServer(urls=["turn:a.relay.metered.ca:443?transport=tcp"], username="600d051df7164e74cc88545e", credential="cHXM9rvKAmi8boVQ")
+]
+
+peer_connection = RTCPeerConnection(configuration=RTCConfiguration(iceServers=ice_servers))
+ice_gatherer = RTCIceGatherer(iceServers=ice_servers)
+
 channel = peer_connection.createDataChannel("stream")
 
 # async def send_pings(channel):
@@ -30,6 +41,47 @@ channel = peer_connection.createDataChannel("stream")
 #         num += 1
 #         await asyncio.sleep(1)
 
+async def getLocalCadidates():
+    await ice_gatherer.gather()
+    local_cadidates = ice_gatherer.getLocalCandidates()
+    return local_cadidates
+
+@peer_connection.on("icecandidate")
+def handleCandidate(e):
+    print("Device Ice", e)
+    if (e.candidate):
+        sio.emit("iceCandidate", {'deviceId': deviceId,'candidate': e['candidate']})
+
+@peer_connection.on('iceconnectionstatechange')
+def iceStateChange():
+    print("Ice state changed", peer_connection.iceConnectionState)
+
+@peer_connection.on('icegatheringstatechange')
+async def iceStateChange():
+    print("Ice Gathering state changed", peer_connection.iceGatheringState)
+    local_cadidates = ice_gatherer.getLocalCandidates()
+    # print("Local candidate", local_cadidates)
+
+    if(peer_connection.iceGatheringState == 'complete'):
+        print("Local candidate gathered")
+        for i in local_cadidates:
+
+            candidateToSend = {
+                'foundation': i.foundation,
+                'component': i.component,
+                'ip': i.ip,
+                'port': i.port,
+                'priority': i.priority,
+                'protocol': i.protocol,
+                'type': i.type,
+                'tcpType': i.tcpType,
+                'sdpMLineIndex': i.sdpMLineIndex,
+                'sdpMid': i.sdpMid,
+                'relatedAddress': i.relatedAddress,
+                'relatedPort': i.relatedPort,
+            }
+
+            await sio.emit("iceCandidate", {'deviceId': deviceId,'candidate': candidateToSend})
 
 @channel.on("open")
 def on_open():
@@ -50,41 +102,44 @@ async def generateLocalOffer():
     await peer_connection.setLocalDescription(await peer_connection.createOffer())
     print("Conn", peer_connection.signalingState)
 
-def handleCandidate(e):
-    print("Device Ice", e)
-    if (e.candidate):
-        sio.emit("iceCandidate", {'deviceId': deviceId,'candidate': e['candidate']})
+async def startGathering():
+    await ice_gatherer.gather()
 
 async def handleAddIceCandidate(candidate):
-    await peer_connection.addIceCandidate(candidate)
+    try:
+        # print("Candidate",candidate)
+        await peer_connection.addIceCandidate(candidate)
+    except Exception as e:
+        print("Error in adding candidate", e)
 
 async def setRemoteOffer(offer):
     try:
-        print(offer['offer'])
-        print("State", peer_connection.signalingState)
+        # print(offer['offer'])
+
+        print("State 1", peer_connection.signalingState)
         desc = RTCSessionDescription(offer['offer']['sdp'], offer['offer']['type'])
         await peer_connection.setRemoteDescription(desc)
 
-        print("State", peer_connection.signalingState)
-        peer_connection.onicecandidate = handleCandidate
+        print("State 2", peer_connection.signalingState)
 
         answer = await peer_connection.createAnswer()
         await peer_connection.setLocalDescription(answer)
-        print("State", peer_connection.signalingState)
-        print("Answer", answer.sdp)
-        
+        print("State 3", peer_connection.signalingState)
+        # print("Local desc", peer_connection.localDescription)
+        print("Local desc", peer_connection.iceConnectionState)
+
         return answer
-    except:
-        print("Error")
+    except Exception as e:
+        print("Error in remote offer function", e)
 
 @sio.event
-def connect():
+async def connect():
     print("I'm connected!")
-    sio.emit("create room", {"deviceId": deviceId, "cams": cams})
+    await sio.emit("create room", {"deviceId": deviceId, "cams": cams})
 
 
 @sio.event
-def roomCreated(data):
+async def roomCreated(data):
     print("Room is created on the server sending offer now", data)
     # asyncio.run(generateLocalOffer())
     # message = {
@@ -95,9 +150,15 @@ def roomCreated(data):
     # sio.emit("offer", {"offer": message})
 
 @sio.event
-def userJoined(data):
-    print("User joined a room user sdp:", data)
-    answer = asyncio.run(setRemoteOffer(data))
+async def userJoined(data):
+    print("User joined a room user sdp")
+    
+    # await startGathering()
+    
+
+    # print("User joined a room user sdp:", data)
+    answer = await setRemoteOffer(data)
+    # print("Answer to send back", answer)
     # asyncio.run(generateLocalOffer())
     
     message = {
@@ -105,14 +166,29 @@ def userJoined(data):
         "sdp": answer.sdp, 
         'type': answer.type
     }
-    sio.emit('answer', message)
+    await sio.emit('answer', message)
 
 @sio.event
-def iceCandidate(data):
-    print("User Candidate", data)
+async def iceCandidate(data):
+    print("Received Ice candidate")
+    # print("User Candidate", data)
 
-    candidate = RTCIceCandidate(data['candidate']['foundation'], data['candidate']['ip'], data['candidate']['port'], data['candidate']['priority'], data['candidate']['protocol'], data['candidate']['type'])
-    asyncio.run(handleAddIceCandidate(candidate))
+    candidate = RTCIceCandidate(
+        data['candidate']['component'],
+        data['candidate']['foundation'],
+        data['candidate']['ip'], 
+        data['candidate']['port'], 
+        data['candidate']['priority'], 
+        data['candidate']['protocol'], 
+        data['candidate']['type'],
+        data['candidate']['relatedAddress'],
+        data['candidate']['relatedPort'],
+        data['candidate']['sdpMid'],
+        data['candidate']['sdpMLineIndex'],
+        data['candidate']['tcpType'],
+    )
+    
+    await handleAddIceCandidate(candidate)
 
 @sio.event
 async def connect_error():
@@ -120,9 +196,13 @@ async def connect_error():
 
 
 @sio.event
-def camRequest(data):
+async def camRequest(data):
     print("Edge device received cam request!", data)
     cam = data["camId"]
+
+    can = asyncio.run(getLocalCadidates())
+    
+    print("Local candidates", can)
     # print("Cam", cam)
     # print("Cam data", camData.get(str(cam), "Unknown Cam"))
     sio.emit(
@@ -132,18 +212,23 @@ def camRequest(data):
 
 
 @sio.on("price")
-def on_message(data):
+async def on_message(data):
     print("Price Data ", data)
 
+# Connect to the server
+async def connect_to_server():
+    await sio.connect(server_address)
 
-sio.connect(server_address)
+# Run the event loop
+async def main():
+    await connect_to_server()
 
-
-# Run indefinitely
-while True:
+if __name__ == "__main__":
+    loop = asyncio.get_event_loop()
     try:
-        time.sleep(1)  # Add a small delay to avoid a busy loop
+        loop.run_until_complete(main())
+        loop.run_forever()
     except KeyboardInterrupt:
         print("KeyboardInterrupt received. Disconnecting...")
-        sio.disconnect()
-        break
+        loop.run_until_complete(sio.disconnect())
+        loop.close()

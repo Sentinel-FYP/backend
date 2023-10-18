@@ -17,7 +17,7 @@ function App() {
 
     localSocket.on("camData", (message) => {
       console.log("Received message:", message);
-      setMessages((prev) => [...prev, message.camData]);
+      setMessages(message.camData);
     });
 
     localSocket.on("answer", async (message) => {
@@ -30,8 +30,9 @@ function App() {
       console.log("State", localPeer.current.signalingState);
     });
 
-    localSocket.on("ice-candidate", async (data) => {
+    localSocket.on("iceCandidate", async (data) => {
       console.log("Edge Candidate", data);
+
       const candidate = new RTCIceCandidate(data.candidate);
       await localPeer.current.addIceCandidate(candidate);
     });
@@ -52,7 +53,27 @@ function App() {
       const peer = new RTCPeerConnection({
         iceServers: [
           {
-            urls: "stun:stun.stunprotocol.org",
+            urls: "stun:stun.relay.metered.ca:80",
+          },
+          {
+            urls: "turn:a.relay.metered.ca:80",
+            username: "600d051df7164e74cc88545e",
+            credential: "cHXM9rvKAmi8boVQ",
+          },
+          {
+            urls: "turn:a.relay.metered.ca:80?transport=tcp",
+            username: "600d051df7164e74cc88545e",
+            credential: "cHXM9rvKAmi8boVQ",
+          },
+          {
+            urls: "turn:a.relay.metered.ca:443",
+            username: "600d051df7164e74cc88545e",
+            credential: "cHXM9rvKAmi8boVQ",
+          },
+          {
+            urls: "turn:a.relay.metered.ca:443?transport=tcp",
+            username: "600d051df7164e74cc88545e",
+            credential: "cHXM9rvKAmi8boVQ",
           },
         ],
       });
@@ -66,7 +87,7 @@ function App() {
       // };
 
       var mediaConstraints = {
-        // offerToReceiveAudio: true,
+        offerToReceiveAudio: true,
         offerToReceiveVideo: true,
       };
 
@@ -78,26 +99,46 @@ function App() {
       await peer.setLocalDescription(offer);
       console.log("State", peer.signalingState);
 
-      // peer.addEventListener("message", (m) => setMessages(m));
-      peer.onicecandidate = handleIceCandidate;
+      // Gathering all ice candidates
+      peer.onicegatheringstatechange = handleIceGathering;
+
+      // peer.onicecandidate = handleIceCandidate;
+
+      peer.onconnectionstatechange = (e) => console.log("Connection state event", e);
+      peer.onnegotiationneeded = () => console.log("Negotiation Needed");
 
       localPeer.current = peer;
-
-      socket.emit("join room", { deviceId: myDevice, offer: offer }); // Send a message to the server
     }
   };
 
+  function handleIceGathering(e) {
+    const state = e.target.iceGatheringState;
+    console.log("Gathering candidate");
+
+    if (state === "complete") {
+      localPeer.current.removeEventListener("icegatheringstatechange", () => console.log("Gathering event removed"));
+      socket.emit("join room", { deviceId: myDevice, offer: localPeer.current.localDescription }); // Send a message to the server
+    }
+  }
+
   function handleIceCandidate(e) {
     if (e.candidate) {
-      console.log("Candidate", e.candidate);
+      console.log("New Candidate");
+      // console.log("Candidate", e.candidate);
 
       let candidateToSend = {
         foundation: e.candidate.foundation,
+        component: e.candidate.component,
         ip: e.candidate.address,
         port: e.candidate.port,
         priority: e.candidate.priority,
         protocol: e.candidate.protocol,
         type: e.candidate.type,
+        tcpType: e.candidate.tcpType,
+        sdpMLineIndex: e.candidate.sdpMLineIndex,
+        sdpMid: e.candidate.sdpMid,
+        relatedAddress: e.candidate.relatedAddress,
+        relatedPort: e.candidate.relatedPort,
       };
 
       const payload = {
@@ -105,7 +146,7 @@ function App() {
         candidate: candidateToSend,
         user: true,
       };
-      console.log("User ice payload", payload);
+      // console.log("User ice payload", payload);
       socket.emit("iceCandidate", payload);
     }
   }
@@ -119,7 +160,7 @@ function App() {
         <button onClick={() => sendMessage(2)}>Request Camera Stream 2</button>
         <button onClick={() => sendMessage(3)}>Request Camera Stream 3</button>
       </div>
-      <div>{messages?.length ? messages.map((message) => <div>{message}</div>) : <div>{JSON.stringify(messages)}</div>}</div>
+      <div>{JSON.stringify(messages)}</div>
     </div>
   );
 }

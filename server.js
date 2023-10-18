@@ -60,7 +60,7 @@ io.on("connection", (socket) => {
     if (data.user) {
       io.to(rooms[data.deviceId].deviceSocketId).emit("iceCandidate", data);
     } else {
-      io.to(rooms[data.deviceId].user).emit("iceCandidate", data);
+      io.to(rooms[data.deviceId].userSocketId).emit("iceCandidate", data);
     }
   });
 
