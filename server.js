@@ -93,6 +93,10 @@ io.on("connection", (socket) => {
   });
 });
 
+app.get("/", (req, res) => {
+  res.send("Hello World!");
+});
+
 httpServer.listen(port, () => {
   // Loop through the network interfaces to find the IP address
   Object.keys(networkInterfaces).forEach((interfaceName) => {
