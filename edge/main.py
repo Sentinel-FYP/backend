@@ -1,7 +1,7 @@
 import socketio
 import time
 import asyncio
-
+import platform
 from aiortc import (
     RTCIceCandidate,
     RTCPeerConnection,
@@ -11,6 +11,34 @@ from aiortc import (
     RTCIceGatherer
 )
 
+from aiortc.contrib.media import MediaPlayer, MediaRelay
+from aiortc.rtcrtpsender import RTCRtpSender
+
+relay = None  
+webcam = None 
+
+def create_local_tracks(play_from, decode):
+    global relay, webcam
+
+    if play_from:
+        player = MediaPlayer(play_from, decode=decode)
+        return player.audio, player.video
+    else:
+        options = {"framerate": "30", "video_size": "640x480"}
+        if relay is None:
+            if platform.system() == "Darwin":
+                webcam = MediaPlayer(
+                    "default:none", format="avfoundation", options=options
+                )
+            elif platform.system() == "Windows":
+                webcam = MediaPlayer(
+                    "video=Integrated Camera", format="dshow", options=options
+                )
+            else:
+                webcam = MediaPlayer("/dev/video0", format="v4l2", options=options)
+            relay = MediaRelay()
+        return None, relay.subscribe(webcam.video)
+
 server_address = "http://localhost:3300"
 # standard Python
 sio = socketio.AsyncClient()
@@ -19,18 +47,29 @@ deviceId = "abc"
 camData = {"1": "Cam 1", "2": "Cam 2", "3": "Cam 3"}
 cams = ["1", "2", "3"]
 
+# ice_servers = [
+#     RTCIceServer(urls=["stun:stun.relay.metered.ca:80"]), 
+#     RTCIceServer(urls=["turn:a.relay.metered.ca:80"], username="600d051df7164e74cc88545e", credential="cHXM9rvKAmi8boVQ"),
+#     RTCIceServer(urls=["turn:a.relay.metered.ca:80?transport=tcp"], username="600d051df7164e74cc88545e", credential="cHXM9rvKAmi8boVQ"),
+#     RTCIceServer(urls=["turn:a.relay.metered.ca:443"], username="600d051df7164e74cc88545e", credential="cHXM9rvKAmi8boVQ"),
+#     RTCIceServer(urls=["turn:a.relay.metered.ca:443?transport=tcp"], username="600d051df7164e74cc88545e", credential="cHXM9rvKAmi8boVQ")
+# ]
+
 ice_servers = [
-    RTCIceServer(urls=["stun:stun.relay.metered.ca:80"]), 
-    RTCIceServer(urls=["turn:a.relay.metered.ca:80"], username="600d051df7164e74cc88545e", credential="cHXM9rvKAmi8boVQ"),
-    RTCIceServer(urls=["turn:a.relay.metered.ca:80?transport=tcp"], username="600d051df7164e74cc88545e", credential="cHXM9rvKAmi8boVQ"),
-    RTCIceServer(urls=["turn:a.relay.metered.ca:443"], username="600d051df7164e74cc88545e", credential="cHXM9rvKAmi8boVQ"),
-    RTCIceServer(urls=["turn:a.relay.metered.ca:443?transport=tcp"], username="600d051df7164e74cc88545e", credential="cHXM9rvKAmi8boVQ")
+    RTCIceServer(urls=["stun:stun.l.google.com:19302"]), 
+    
 ]
 
 peer_connection = RTCPeerConnection(configuration=RTCConfiguration(iceServers=ice_servers))
 ice_gatherer = RTCIceGatherer(iceServers=ice_servers)
+audio, video = create_local_tracks(None,None)
+if audio:
+        audio_sender = peer_connection.addTrack(audio)
+if video:
+    video_sender = peer_connection.addTrack(video)
+    print("Got the video and added to track.")
 
-channel = peer_connection.createDataChannel("stream")
+# channel = peer_connection.createDataChannel("stream")
 
 # async def send_pings(channel):
 #     num = 0
@@ -83,19 +122,7 @@ async def iceStateChange():
 
             await sio.emit("iceCandidate", {'deviceId': deviceId,'candidate': candidateToSend})
 
-@channel.on("open")
-def on_open():
-    print("channel openned")
-    channel.send("Hello from Offerer via Datachannel")
-    # asyncio.ensure_future(send_pings(channel))
 
-
-# @channel.on("message")
-# def on_message(message):
-#     print("Received via RTC Datachannel", message)
-
-
-# send offer
 
 
 async def generateLocalOffer():
@@ -125,8 +152,8 @@ async def setRemoteOffer(offer):
         answer = await peer_connection.createAnswer()
         await peer_connection.setLocalDescription(answer)
         print("State 3", peer_connection.signalingState)
-        # print("Local desc", peer_connection.localDescription)
-        print("Local desc", peer_connection.iceConnectionState)
+        print("Local desc", peer_connection.localDescription)
+        print("Ice connection state", peer_connection.iceConnectionState)
 
         return answer
     except Exception as e:
@@ -230,5 +257,6 @@ if __name__ == "__main__":
         loop.run_forever()
     except KeyboardInterrupt:
         print("KeyboardInterrupt received. Disconnecting...")
+        relay.unsubscribe()
         loop.run_until_complete(sio.disconnect())
         loop.close()

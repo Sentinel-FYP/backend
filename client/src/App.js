@@ -6,9 +6,15 @@ function App() {
   const [socket, setSocket] = useState(null);
   const [messages, setMessages] = useState([]);
   const [myDevice, setMyDevice] = useState("abc");
-
+  const [remoteStream, setRemoteStream] = useState();
+  const remoteVideo = useRef();
   const localPeer = useRef();
-  const peer_connection = useRef();
+
+  useEffect(() => {
+    if (remoteStream) {
+      remoteVideo.current.srcObject = remoteStream;
+    }
+  }, [remoteStream]);
 
   useEffect(() => {
     const localSocket = io("http://localhost:3300");
@@ -24,7 +30,10 @@ function App() {
       setMessages(message);
       console.log("State", localPeer.current.signalingState);
       console.log("Connection state", localPeer.current.connectionState);
-      const desc = new RTCSessionDescription({ sdp: message.sdp, type: message.type });
+      const desc = new RTCSessionDescription({
+        sdp: message.sdp,
+        type: message.type,
+      });
       console.log("Description", desc.toJSON());
       await localPeer.current.setRemoteDescription(desc);
       console.log("State", localPeer.current.signalingState);
@@ -53,27 +62,7 @@ function App() {
       const peer = new RTCPeerConnection({
         iceServers: [
           {
-            urls: "stun:stun.relay.metered.ca:80",
-          },
-          {
-            urls: "turn:a.relay.metered.ca:80",
-            username: "600d051df7164e74cc88545e",
-            credential: "cHXM9rvKAmi8boVQ",
-          },
-          {
-            urls: "turn:a.relay.metered.ca:80?transport=tcp",
-            username: "600d051df7164e74cc88545e",
-            credential: "cHXM9rvKAmi8boVQ",
-          },
-          {
-            urls: "turn:a.relay.metered.ca:443",
-            username: "600d051df7164e74cc88545e",
-            credential: "cHXM9rvKAmi8boVQ",
-          },
-          {
-            urls: "turn:a.relay.metered.ca:443?transport=tcp",
-            username: "600d051df7164e74cc88545e",
-            credential: "cHXM9rvKAmi8boVQ",
+            urls: "stun:stun.l.google.com:19302",
           },
         ],
       });
@@ -104,9 +93,21 @@ function App() {
 
       // peer.onicecandidate = handleIceCandidate;
 
-      peer.onconnectionstatechange = (e) => console.log("Connection state event", e);
-      peer.onnegotiationneeded = () => console.log("Negotiation Needed");
+      peer.onconnectionstatechange = (e) => {
+        console.log("Connection state event", e);
+        setMessages(e);
+      };
 
+      peer.onnegotiationneeded = () => console.log("Negotiation Needed");
+      peer.ontrack = (event) => {
+        console.log("Adding video track now");
+        const newStream = new MediaStream();
+        event.streams[0].getTracks().forEach((track) => {
+          console.log(track);
+          newStream.addTrack(track);
+        });
+        setRemoteStream(newStream);
+      };
       localPeer.current = peer;
     }
   };
@@ -116,8 +117,13 @@ function App() {
     console.log("Gathering candidate");
 
     if (state === "complete") {
-      localPeer.current.removeEventListener("icegatheringstatechange", () => console.log("Gathering event removed"));
-      socket.emit("join room", { deviceId: myDevice, offer: localPeer.current.localDescription }); // Send a message to the server
+      localPeer.current.removeEventListener("icegatheringstatechange", () =>
+        console.log("Gathering event removed")
+      );
+      socket.emit("join room", {
+        deviceId: myDevice,
+        offer: localPeer.current.localDescription,
+      }); // Send a message to the server
     }
   }
 
@@ -161,6 +167,17 @@ function App() {
         <button onClick={() => sendMessage(3)}>Request Camera Stream 3</button>
       </div>
       <div>{JSON.stringify(messages)}</div>
+      <div className="videos">
+        <span>
+          <h3>Remote Stream</h3>
+          <video
+            ref={remoteVideo}
+            id="remoteVideo"
+            autoPlay
+            playsInline
+          ></video>
+        </span>
+      </div>
     </div>
   );
 }
