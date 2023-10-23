@@ -17,7 +17,7 @@ function App() {
   }, [remoteStream]);
 
   useEffect(() => {
-    const localSocket = io("http://localhost:3300");
+    const localSocket = io("https://sentinel-backend.vercel.app");
     setSocket(localSocket);
     console.log("Connecting");
 
