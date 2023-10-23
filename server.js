@@ -1,13 +1,13 @@
 const express = require("express");
 const app = express();
-const httpServer = require("http").createServer(app);
+const httpsServer = require("https").createServer(app);
 const os = require("os");
 const path = require("path");
 
 // Get the network interfaces
 const networkInterfaces = os.networkInterfaces();
 
-const io = require("socket.io")(httpServer, { cors: true });
+const io = require("socket.io")(httpsServer, { cors: true });
 const port = process.env.PORT || 3300;
 let rooms = {};
 
@@ -101,7 +101,7 @@ app.get("/test", (req, res) => {
   res.send("Hello World!");
 });
 
-httpServer.listen(port, () => {
+httpsServer.listen(port, () => {
   // Loop through the network interfaces to find the IP address
   Object.keys(networkInterfaces).forEach((interfaceName) => {
     const interfaceData = networkInterfaces[interfaceName];
@@ -111,4 +111,5 @@ httpServer.listen(port, () => {
       }
     }
   });
+  console.log("Server started on port", port);
 });
