@@ -61,7 +61,7 @@ cams = ["1", "2", "3"]
 
 ice_servers = [
     RTCIceServer(urls=["stun:stun.l.google.com:19302"]), 
-    
+    RTCIceServer(urls=["turn:a.relay.metered.ca:443"], username="600d051df7164e74cc88545e", credential="cHXM9rvKAmi8boVQ")
 ]
 
 peer_connection = RTCPeerConnection(configuration=RTCConfiguration(iceServers=ice_servers))

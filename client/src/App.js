@@ -64,6 +64,11 @@ function App() {
           {
             urls: "stun:stun.l.google.com:19302",
           },
+          {
+            urls: "turn:a.relay.metered.ca:443",
+            username: "600d051df7164e74cc88545e",
+            credential: "cHXM9rvKAmi8boVQ",
+          },
         ],
       });
 
@@ -117,9 +122,7 @@ function App() {
     console.log("Gathering candidate");
 
     if (state === "complete") {
-      localPeer.current.removeEventListener("icegatheringstatechange", () =>
-        console.log("Gathering event removed")
-      );
+      localPeer.current.removeEventListener("icegatheringstatechange", () => console.log("Gathering event removed"));
       socket.emit("join room", {
         deviceId: myDevice,
         offer: localPeer.current.localDescription,
@@ -170,12 +173,7 @@ function App() {
       <div className="videos">
         <span>
           <h3>Remote Stream</h3>
-          <video
-            ref={remoteVideo}
-            id="remoteVideo"
-            autoPlay
-            playsInline
-          ></video>
+          <video ref={remoteVideo} id="remoteVideo" autoPlay playsInline></video>
         </span>
       </div>
     </div>

@@ -1,6 +1,8 @@
-const app = require("express")();
+const express = require("express");
+const app = express();
 const httpServer = require("http").createServer(app);
 const os = require("os");
+const path = require("path");
 
 // Get the network interfaces
 const networkInterfaces = os.networkInterfaces();
@@ -93,7 +95,9 @@ io.on("connection", (socket) => {
   });
 });
 
-app.get("/", (req, res) => {
+app.use(express.static(path.join(__dirname, "./client/build")));
+
+app.get("/test", (req, res) => {
   res.send("Hello World!");
 });
 
