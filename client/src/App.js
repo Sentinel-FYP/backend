@@ -17,7 +17,7 @@ function App() {
   }, [remoteStream]);
 
   useEffect(() => {
-    const localSocket = io("https://sentinel-backend.adaptable.app");
+    const localSocket = io("ws://sentinel-backend.adaptable.app");
     setSocket(localSocket);
     console.log("Connecting");
 

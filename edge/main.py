@@ -43,7 +43,7 @@ def create_local_tracks(play_from, decode):
             relay = MediaRelay()
         return None, relay.subscribe(webcam.video)
 
-server_address = "https://sentinel-backend.adaptable.app"
+server_address = "ws://sentinel-backend.adaptable.app"
 # standard Python
 sio = socketio.AsyncClient()
 
