@@ -8,7 +8,7 @@ const path = require("path");
 const networkInterfaces = os.networkInterfaces();
 
 const io = require("socket.io")(httpServer, { cors: true });
-const port = 3300;
+const port = process.env.PORT || 3300;
 let rooms = {};
 
 io.on("connection", (socket) => {
