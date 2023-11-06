@@ -17,7 +17,7 @@ function App() {
   }, [remoteStream]);
 
   useEffect(() => {
-    const localSocket = io("ws://sentinel-backend.adaptable.app");
+    const localSocket = io("http://localhost:3300");
     setSocket(localSocket);
     console.log("Connecting");
 
@@ -62,10 +62,26 @@ function App() {
       const peer = new RTCPeerConnection({
         iceServers: [
           {
-            urls: "stun:stun.l.google.com:19302",
+            urls: "stun:stun.stunprotocol.org",
+            urls: "stun:stun.relay.metered.ca:80",
+          },
+          {
+            urls: "turn:a.relay.metered.ca:80",
+            username: "600d051df7164e74cc88545e",
+            credential: "cHXM9rvKAmi8boVQ",
+          },
+          {
+            urls: "turn:a.relay.metered.ca:80?transport=tcp",
+            username: "600d051df7164e74cc88545e",
+            credential: "cHXM9rvKAmi8boVQ",
           },
           {
             urls: "turn:a.relay.metered.ca:443",
+            username: "600d051df7164e74cc88545e",
+            credential: "cHXM9rvKAmi8boVQ",
+          },
+          {
+            urls: "turn:a.relay.metered.ca:443?transport=tcp",
             username: "600d051df7164e74cc88545e",
             credential: "cHXM9rvKAmi8boVQ",
           },
