@@ -43,7 +43,7 @@ def create_local_tracks(play_from, decode):
             relay = MediaRelay()
         return None, relay.subscribe(webcam.video)
 
-server_address = "ws://sentinel-backend.adaptable.app"
+server_address = "http://localhost:3300"
 # standard Python
 sio = socketio.AsyncClient()
 
@@ -59,13 +59,20 @@ cams = ["1", "2", "3"]
 #     RTCIceServer(urls=["turn:a.relay.metered.ca:443?transport=tcp"], username="600d051df7164e74cc88545e", credential="cHXM9rvKAmi8boVQ")
 # ]
 
-ice_servers = [
-    RTCIceServer(urls=["stun:stun.l.google.com:19302"]), 
-    RTCIceServer(urls=["turn:a.relay.metered.ca:443"], username="600d051df7164e74cc88545e", credential="cHXM9rvKAmi8boVQ")
-]
+# ice_servers = [
+#     RTCIceServer(urls=["stun:stun.l.google.com:19302"]), 
+#     RTCIceServer(urls=["turn:a.relay.metered.ca:80"], username="600d051df7164e74cc88545e", credential="cHXM9rvKAmi8boVQ"),
+#     RTCIceServer(urls=["turn:a.relay.metered.ca:80?transport=tcp"], username="600d051df7164e74cc88545e", credential="cHXM9rvKAmi8boVQ"),
+#     RTCIceServer(urls=["turn:a.relay.metered.ca:443"], username="600d051df7164e74cc88545e", credential="cHXM9rvKAmi8boVQ"),
+#     RTCIceServer(urls=["turn:a.relay.metered.ca:443?transport=tcp"], username="600d051df7164e74cc88545e", credential="cHXM9rvKAmi8boVQ")
+# ]
 
-peer_connection = RTCPeerConnection(configuration=RTCConfiguration(iceServers=ice_servers))
-ice_gatherer = RTCIceGatherer(iceServers=ice_servers)
+# peer_connection = RTCPeerConnection(configuration=RTCConfiguration(iceServers=ice_servers))
+# ice_gatherer = RTCIceGatherer(iceServers=ice_servers)
+
+peer_connection = RTCPeerConnection()
+ice_gatherer = RTCIceGatherer()
+
 audio, video = create_local_tracks(None,None)
 if audio:
         audio_sender = peer_connection.addTrack(audio)

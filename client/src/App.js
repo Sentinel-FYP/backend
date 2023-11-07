@@ -62,8 +62,7 @@ function App() {
       const peer = new RTCPeerConnection({
         iceServers: [
           {
-            urls: "stun:stun.stunprotocol.org",
-            urls: "stun:stun.relay.metered.ca:80",
+            urls: "stun:stun.l.google.com:19302",
           },
           {
             urls: "turn:a.relay.metered.ca:80",
@@ -138,7 +137,9 @@ function App() {
     console.log("Gathering candidate");
 
     if (state === "complete") {
-      localPeer.current.removeEventListener("icegatheringstatechange", () => console.log("Gathering event removed"));
+      localPeer.current.removeEventListener("icegatheringstatechange", () =>
+        console.log("Gathering event removed")
+      );
       socket.emit("join room", {
         deviceId: myDevice,
         offer: localPeer.current.localDescription,
