@@ -32,9 +32,13 @@ def create_local_tracks(play_from, decode):
                     "default:none", format="avfoundation", options=options
                 )
             elif platform.system() == "Windows":
-                webcam = MediaPlayer(
-                    "video=Integrated Camera", format="dshow", options=options
-                )
+                # webcam = MediaPlayer(
+                #     "video=USB Video Device", format="dshow", options=options
+                # )
+                # webcam = MediaPlayer(
+                #     "video=Integrated Camera", format="dshow", options=options
+                # )
+                webcam = MediaPlayer("./video.mp4")
             else:
                 webcam = MediaPlayer("/dev/video0", format="v4l2", options=options)
             relay = MediaRelay()
