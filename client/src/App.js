@@ -59,13 +59,10 @@ function App() {
 
   const joinRoom = async () => {
     if (socket) {
-      const peer = new RTCPeerConnection({
-        iceServers: [
-          {
-            urls: "stun:stun.l.google.com:19302",
-          },
-        ],
-      });
+      const configuration = {
+        iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+      };
+      const peer = new RTCPeerConnection(configuration);
 
       // peer.onicecandidate = (e) => {
       //   console.log("This");
