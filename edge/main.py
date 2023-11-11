@@ -28,9 +28,10 @@ def create_local_tracks(play_from, decode):
         options = {"framerate": "30", "video_size": "640x480"}
         if relay is None:
             if platform.system() == "Darwin":
-                webcam = MediaPlayer(
-                    "default:none", format="avfoundation", options=options
-                )
+                # webcam = MediaPlayer(
+                #     "default:none", format="avfoundation", options=options
+                # )
+                webcam = MediaPlayer("./video.mp4")
             elif platform.system() == "Windows":
                 # webcam = MediaPlayer(
                 #     "video=USB Video Device", format="dshow", options=options
@@ -40,7 +41,7 @@ def create_local_tracks(play_from, decode):
                 # )
                 webcam = MediaPlayer("./video.mp4")
             else:
-                webcam = MediaPlayer("/dev/video0", format="v4l2", options=options)
+                webcam = MediaPlayer("./video.mp4")
             relay = MediaRelay()
         return None, relay.subscribe(webcam.video)
 
