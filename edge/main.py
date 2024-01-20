@@ -46,7 +46,7 @@ def create_local_tracks(play_from, decode):
         return None, relay.subscribe(webcam.video)
 
 
-server_address = "http://localhost:3300"
+server_address = "http://172.31.27.57:5500"
 # standard Python
 sio = socketio.AsyncClient()
 
