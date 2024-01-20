@@ -6,7 +6,7 @@ const os = require("os");
 const networkInterfaces = os.networkInterfaces();
 
 const io = require("socket.io")(httpServer, { cors: true });
-const port = 3300;
+const port = 5001;
 let rooms = {};
 
 io.on("connection", (socket) => {
