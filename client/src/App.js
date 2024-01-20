@@ -60,7 +60,24 @@ function App() {
   const joinRoom = async () => {
     if (socket) {
       const configuration = {
-        iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+        iceServers: [
+          { urls: "stun:stun.l.google.com:19302" },
+          {
+            url: "turn:13.51.86.179:3478",
+            username: "admin",
+            credential: "admin",
+          },
+          {
+            url: "turn:13.51.86.179:3478?transport=udp",
+            username: "admin",
+            credential: "admin",
+          },
+          {
+            url: "turn:13.51.86.179:3478?transport=tcp",
+            username: "admin",
+            credential: "admin",
+          },
+        ],
       };
       const peer = new RTCPeerConnection(configuration);
 
@@ -167,12 +184,7 @@ function App() {
       <div className="videos">
         <span>
           <h3>Remote Stream</h3>
-          <video
-            ref={remoteVideo}
-            id="remoteVideo"
-            autoPlay
-            playsInline
-          ></video>
+          <video ref={remoteVideo} id="remoteVideo" autoPlay playsInline></video>
         </span>
       </div>
     </div>
