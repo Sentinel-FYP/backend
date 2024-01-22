@@ -78,6 +78,7 @@ function App() {
         //     credential: "admin",
         //   },
         // ],
+        sdpSemantics: "unified-plan",
         iceServers: [
           {
             urls: ["stun:stun.l.google.com:19302", "stun:global.stun.twilio.com:3478"],

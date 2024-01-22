@@ -1,5 +1,4 @@
 import socketio
-import time
 import asyncio
 import platform
 from aiortc import (
@@ -9,8 +8,11 @@ from aiortc import (
     RTCIceServer,
     RTCIceGatherer,
 )
-
 from aiortc.contrib.media import MediaPlayer, MediaRelay
+import logging
+
+aiortc_logger = logging.getLogger("aiortc")
+aiortc_logger.setLevel(logging.DEBUG)
 
 relay = None
 webcam = None
@@ -19,7 +21,7 @@ def create_local_tracks(play_from, decode):
     global relay, webcam
 
     if play_from:
-        player = MediaPlayer(play_from, decode=decode)
+        player = MediaPlayer("./video.mp4", decode=decode)
         return player.audio, player.video
     else:
         options = {"framerate": "30", "video_size": "640x480"}
@@ -57,58 +59,74 @@ deviceId = "abc"
 # ]
 
 ice_servers = [
-    RTCIceServer(urls=["stun:stun.l.google.com:19302"]),
-    RTCIceServer(
-        urls=["turn:13.51.86.179:3478"],
-        username="admin",
-        credential="admin",
-    ),
-    RTCIceServer(
-        urls=["turn:13.51.86.179:3478?transport=udp"],
-        username="admin",
-        credential="admin",
-    ),
-    RTCIceServer(
-        urls=["turn:13.51.86.179:3478?transport=tcp"],
-        username="admin",
-        credential="admin",
-    ),
+    RTCIceServer(urls=["stun:stun.l.google.com:19302", "stun:global.stun.twilio.com:3478"]),
+    # RTCIceServer(
+    #     urls=["turn:13.51.86.179:3478"],
+    #     username="admin",
+    #     credential="admin",
+    # ),
+    # RTCIceServer(
+    #     urls=["turn:13.51.86.179:3478?transport=udp"],
+    #     username="admin",
+    #     credential="admin",
+    # ),
+    # RTCIceServer(
+    #     urls=["turn:13.51.86.179:3478?transport=tcp"],
+    #     username="admin",
+    #     credential="admin",
+    # ),
 ]
 
 peer_connection = RTCPeerConnection(
     configuration=RTCConfiguration(iceServers=ice_servers)
 )
 ice_gatherer = RTCIceGatherer(iceServers=ice_servers)
-audio, video = create_local_tracks(None, None)
+pcs = set()
+peer_connection = RTCPeerConnection()
+pcs.add(peer_connection)
+
+@peer_connection.on("connectionstatechange")
+async def on_connectionstatechange():
+    print("Connection state is %s" % peer_connection.connectionState)
+    if peer_connection.connectionState == "failed":
+        await peer_connection.close()
+        pcs.discard(peer_connection)
+
+audio, video = create_local_tracks(True, True)
 if audio:
     audio_sender = peer_connection.addTrack(audio)
+    print("Got the audio and added to track.")
 if video:
     video_sender = peer_connection.addTrack(video)
     print("Got the video and added to track.")
 
 @peer_connection.on("iceconnectionstatechange")
 def iceStateChange():
-    print("Ice state changed", peer_connection.iceConnectionState)
+    print("Ice state is", peer_connection.iceConnectionState)
 
 @peer_connection.on("icegatheringstatechange")
 async def iceStateChange():
-    print("Ice Gathering state changed", peer_connection.iceGatheringState)
+    print("Ice Gathering state is", peer_connection.iceGatheringState)
+
+@peer_connection.on("signalingstatechange")
+async def signalingStateChange():
+    print("Ice Signaling state is", peer_connection.signalingState)
 
 async def setRemoteOffer(offer):
     try:
         # print(offer['offer'])
 
-        print("State 1", peer_connection.signalingState)
+        # print("State 1", peer_connection.signalingState)
         desc = RTCSessionDescription(offer["offer"]["sdp"], offer["offer"]["type"])
         await peer_connection.setRemoteDescription(desc)
 
-        print("State 2", peer_connection.signalingState)
+        # print("State 2", peer_connection.signalingState)
 
         answer = await peer_connection.createAnswer()
         await peer_connection.setLocalDescription(answer)
-        print("State 3", peer_connection.signalingState)
+        # print("State 3", peer_connection.signalingState)
         # print("Local desc", peer_connection.localDescription)
-        print("Ice connection state", peer_connection.iceConnectionState)
+        # print("Ice connection state", peer_connection.iceConnectionState)
 
         return answer
     except Exception as e:
@@ -132,12 +150,9 @@ async def userJoined(data):
 async def connect_error():
     print("The connection failed!")
 
-async def connect_to_server():
-    await sio.connect(server_address)
-
 # Run the event loop
 async def main():
-    await connect_to_server()
+    await sio.connect(server_address)
     
 async def cleanup():
     # Your cleanup code goes here
