@@ -128,6 +128,8 @@ function App() {
         });
         setRemoteStream(newStream);
       };
+      peer.addTransceiver("video", { direction: "recvonly" });
+      peer.addTransceiver("audio", { direction: "recvonly" });
       localPeer.current = peer;
     }
   };
