@@ -46,7 +46,7 @@ def create_local_tracks(play_from, decode):
         return None, relay.subscribe(webcam.video)
 
 
-server_address = "http://172.31.27.57:5500"
+server_address = "http://192.168.100.7:5001/"
 # standard Python
 sio = socketio.AsyncClient()
 
@@ -181,7 +181,7 @@ async def setRemoteOffer(offer):
         answer = await peer_connection.createAnswer()
         await peer_connection.setLocalDescription(answer)
         print("State 3", peer_connection.signalingState)
-        print("Local desc", peer_connection.localDescription)
+        # print("Local desc", peer_connection.localDescription)
         print("Ice connection state", peer_connection.iceConnectionState)
 
         return answer
@@ -288,6 +288,7 @@ if __name__ == "__main__":
         loop.run_forever()
     except KeyboardInterrupt:
         print("KeyboardInterrupt received. Disconnecting...")
-        relay.unsubscribe()
+        # relay.unsubscribe()
+        loop.run_until_complete(peer_connection.close())
         loop.run_until_complete(sio.disconnect())
         loop.close()

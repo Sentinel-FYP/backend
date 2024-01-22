@@ -17,7 +17,7 @@ function App() {
   }, [remoteStream]);
 
   useEffect(() => {
-    const localSocket = io("http://localhost:3300");
+    const localSocket = io("http://localhost:5001");
     setSocket(localSocket);
     console.log("Connecting");
 
@@ -60,22 +60,27 @@ function App() {
   const joinRoom = async () => {
     if (socket) {
       const configuration = {
+        // iceServers: [
+        //   { urls: "stun:stun.l.google.com:19302" },
+        //   {
+        //     url: "turn:13.51.86.179:3478",
+        //     username: "admin",
+        //     credential: "admin",
+        //   },
+        //   {
+        //     url: "turn:13.51.86.179:3478?transport=udp",
+        //     username: "admin",
+        //     credential: "admin",
+        //   },
+        //   {
+        //     url: "turn:13.51.86.179:3478?transport=tcp",
+        //     username: "admin",
+        //     credential: "admin",
+        //   },
+        // ],
         iceServers: [
-          { urls: "stun:stun.l.google.com:19302" },
           {
-            url: "turn:13.51.86.179:3478",
-            username: "admin",
-            credential: "admin",
-          },
-          {
-            url: "turn:13.51.86.179:3478?transport=udp",
-            username: "admin",
-            credential: "admin",
-          },
-          {
-            url: "turn:13.51.86.179:3478?transport=tcp",
-            username: "admin",
-            credential: "admin",
+            urls: ["stun:stun.l.google.com:19302", "stun:global.stun.twilio.com:3478"],
           },
         ],
       };
