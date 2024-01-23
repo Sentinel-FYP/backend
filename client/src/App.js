@@ -66,10 +66,13 @@ function App() {
       };
       const peer = new RTCPeerConnection(configuration);
 
-      var mediaConstraints = {
-        offerToReceiveAudio: true,
-        offerToReceiveVideo: true,
-      };
+      peer.addTransceiver("video", { direction: "recvonly" });
+      peer.addTransceiver("audio", { direction: "recvonly" });
+
+      // var mediaConstraints = {
+      //   offerToReceiveAudio: true,
+      //   offerToReceiveVideo: true,
+      // };
 
       // const offer = await peer.createOffer(mediaConstraints);
       const offer = await peer.createOffer();
@@ -98,8 +101,7 @@ function App() {
         });
         setRemoteStream(newStream);
       };
-      peer.addTransceiver("video", { direction: "recvonly" });
-      peer.addTransceiver("audio", { direction: "recvonly" });
+
       localPeer.current = peer;
     }
   };
