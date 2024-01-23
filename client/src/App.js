@@ -23,15 +23,12 @@ function App() {
 
     localSocket.on("answer", async (message) => {
       setMessages(message);
-      // console.log("State", localPeer.current.signalingState);
-      // console.log("Connection state", localPeer.current.connectionState);
+
       const desc = new RTCSessionDescription({
         sdp: message.sdp,
         type: message.type,
       });
-      // console.log("Description", desc.toJSON());
       await localPeer.current.setRemoteDescription(desc);
-      // console.log("State", localPeer.current.signalingState);
     });
 
     return () => {
@@ -74,7 +71,8 @@ function App() {
         offerToReceiveVideo: true,
       };
 
-      const offer = await peer.createOffer(mediaConstraints);
+      // const offer = await peer.createOffer(mediaConstraints);
+      const offer = await peer.createOffer();
       await peer.setLocalDescription(offer);
 
       // Gathering all ice candidates
