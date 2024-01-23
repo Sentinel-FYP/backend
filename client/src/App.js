@@ -17,7 +17,7 @@ function App() {
   }, [remoteStream]);
 
   useEffect(() => {
-    const localSocket = io("http://localhost:5001");
+    const localSocket = io("http://192.168.100.7:5001");
     setSocket(localSocket);
     console.log("Connecting");
 
