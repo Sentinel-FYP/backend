@@ -87,7 +87,10 @@ function App() {
       peer.onsignalingstatechange = () =>
         console.log("Ice connection state is", localPeer.current.signalingState);
 
-      peer.onnegotiationneeded = () => console.log("Negotiation Needed");
+      peer.onnegotiationneeded = () => {
+        console.log("Negotiation Needed");
+        joinRoom();
+      };
       peer.ontrack = (event) => {
         console.log("Adding video track now");
         const newStream = new MediaStream();
@@ -105,7 +108,7 @@ function App() {
 
   function handleIceGathering(e) {
     const state = e.target.iceGatheringState;
-    console.log("Ice Gathering State is", e);
+    console.log("Ice Gathering State is", state);
 
     if (state === "complete") {
       localPeer.current.removeEventListener("icegatheringstatechange", () =>
