@@ -81,36 +81,7 @@ peer_connection = RTCPeerConnection(
     configuration=RTCConfiguration(iceServers=ice_servers)
 )
 ice_gatherer = RTCIceGatherer(iceServers=ice_servers)
-pcs = set()
-peer_connection = RTCPeerConnection()
-pcs.add(peer_connection)
-
-@peer_connection.on("connectionstatechange")
-async def on_connectionstatechange():
-    print("Connection state is %s" % peer_connection.connectionState)
-    if peer_connection.connectionState == "failed":
-        await peer_connection.close()
-        pcs.discard(peer_connection)
-
-audio, video = create_local_tracks(True, True)
-if audio:
-    audio_sender = peer_connection.addTrack(audio)
-    print("Got the audio and added to track.")
-if video:
-    video_sender = peer_connection.addTrack(video)
-    print("Got the video and added to track.")
-
-@peer_connection.on("iceconnectionstatechange")
-def iceStateChange():
-    print("Ice state is", peer_connection.iceConnectionState)
-
-@peer_connection.on("icegatheringstatechange")
-async def iceStateChange():
-    print("Ice Gathering state is", peer_connection.iceGatheringState)
-
-@peer_connection.on("signalingstatechange")
-async def signalingStateChange():
-    print("Ice Signaling state is", peer_connection.signalingState)
+peer_connection = None
 
 async def setRemoteOffer(offer):
     try:
@@ -118,6 +89,35 @@ async def setRemoteOffer(offer):
 
         # print("State 1", peer_connection.signalingState)
         desc = RTCSessionDescription(offer["offer"]["sdp"], offer["offer"]["type"])
+        
+        peer_connection = RTCPeerConnection()
+
+        @peer_connection.on("connectionstatechange")
+        async def on_connectionstatechange():
+            print("Connection state is %s" % peer_connection.connectionState)
+            if peer_connection.connectionState == "failed":
+                await peer_connection.close()
+
+        @peer_connection.on("iceconnectionstatechange")
+        def iceStateChange():
+            print("Ice state is", peer_connection.iceConnectionState)
+
+        @peer_connection.on("icegatheringstatechange")
+        async def iceStateChange():
+            print("Ice Gathering state is", peer_connection.iceGatheringState)
+
+        @peer_connection.on("signalingstatechange")
+        async def signalingStateChange():
+            print("Ice Signaling state is", peer_connection.signalingState)
+        
+        audio, video = create_local_tracks(True, True)
+        if audio:
+            audio_sender = peer_connection.addTrack(audio)
+            print("Got the audio and added to track.")
+        if video:
+            video_sender = peer_connection.addTrack(video)
+            print("Got the video and added to track.")
+        
         await peer_connection.setRemoteDescription(desc)
 
         # print("State 2", peer_connection.signalingState)
