@@ -39,7 +39,7 @@ io.on("connection", (socket) => {
     if (!rooms[info.deviceId]) {
       // Room does not exist for current device. So device offline
     } else {
-      console.log("Received message:", info);
+      // console.log("Received message:", info);
       console.log("User joined a room");
       // Joining room
       rooms[info.deviceId].userSocketId = socket.id;
@@ -50,13 +50,15 @@ io.on("connection", (socket) => {
   });
 
   socket.on("answer", (data) => {
-    console.log("Server Received answer:", data);
-    console.log(rooms[data.deviceId].userSocketId);
+    // console.log("Server Received answer:", data);
+    console.log("Server Received answer");
+    // console.log(rooms[data.deviceId].userSocketId);
     io.to(rooms[data.deviceId].userSocketId).emit("answer", data);
   });
 
   socket.on("iceCandidate", (data) => {
-    console.log("Server Received candidate:", data);
+    // console.log("Server Received candidate:", data);
+    console.log("Server Received candidate");
     if (data.user) {
       io.to(rooms[data.deviceId].deviceSocketId).emit("iceCandidate", data);
     } else {
@@ -89,7 +91,7 @@ io.on("connection", (socket) => {
 
   socket.on("offer", (data) => {
     console.log("Recieved an offer from the edge device");
-    console.log(JSON.stringify(data.offer, null, 2));
+    // console.log(JSON.stringify(data.offer, null, 2));
   });
 });
 
