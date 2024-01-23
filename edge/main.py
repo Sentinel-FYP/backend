@@ -90,6 +90,7 @@ async def setRemoteOffer(offer):
         # print("State 1", peer_connection.signalingState)
         desc = RTCSessionDescription(offer["offer"]["sdp"], offer["offer"]["type"])
         
+        global peer_connection
         peer_connection = RTCPeerConnection()
 
         @peer_connection.on("connectionstatechange")
